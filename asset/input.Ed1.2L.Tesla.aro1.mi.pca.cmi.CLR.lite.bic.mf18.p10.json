@@ -1,0 +1,19 @@
+{ 
+   "input.data.filename": "edi-data-1.tsv",
+   "num.timepts": 20,
+   "true.net.filename": "edi.net.1.adj.mx.RData",
+   "input.wt.data.filename": "",
+   "is.discrete": false,
+   "num.discr.levels": 2,
+   "discr.algo": "discretizeData.2L.Tesla",
+   "auto.reg.order": 1,
+   "mi.estimator": "mi.pca.cmi",
+   "apply.aracne": false,
+   "clr.algo": "CLR",
+   "max.fanin": 18,
+   "allow.self.loop": true,
+   "use.lite": true,
+   "scoring.func": "BIC", 
+   "parallel": true, 
+   "max.num.cores": 10
+}

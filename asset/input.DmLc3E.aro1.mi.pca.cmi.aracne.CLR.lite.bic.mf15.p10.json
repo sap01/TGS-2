@@ -1,0 +1,19 @@
+{ 
+   "input.data.filename": "DmLc3E.RData",
+   "num.timepts": 6,
+   "true.net.filename": "",
+   "input.wt.data.filename": "",
+   "is.discrete": true,
+   "num.discr.levels": 2,
+   "discr.algo": "",
+   "auto.reg.order": 1,
+   "mi.estimator": "mi.pca.cmi",
+   "apply.aracne": true,
+   "clr.algo": "CLR",
+   "max.fanin": 15,
+   "allow.self.loop": true,
+   "use.lite": true,
+   "scoring.func": "BIC", 
+   "parallel": true, 
+   "max.num.cores": 10
+}
