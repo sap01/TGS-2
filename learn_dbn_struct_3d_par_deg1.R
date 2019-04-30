@@ -1682,7 +1682,8 @@ LearnDbnStructMo1Clr3Ser <- function(input.data.discr.3D, mi.net.adj.matrix.list
       ## E.g., 'v1'
       tgt.node.base.name <- node.names[tgt.node.idx]
       
-      tgt.node.name.as.src <- paste(tgt.node.base.name, as.character(time.pt.idx), sep = "_t")
+      ## Not required for the CLR3 algo
+      # tgt.node.name.as.src <- paste(tgt.node.base.name, as.character(time.pt.idx), sep = "_t")
       
       ## List names of the target node's neighbours in 'mi.net.adj.matrix'
       ngbr.names <- c()
@@ -1707,7 +1708,12 @@ LearnDbnStructMo1Clr3Ser <- function(input.data.discr.3D, mi.net.adj.matrix.list
         ngbr.names <- rownames(mi.net.adj.matrix[which(mi.net.adj.matrix[, tgt.node.idx] == 1),])
       }
       
-      local.net.node.names <- c(tgt.node.name.as.src, ngbr.names)
+      ## Do not add 'tgt.node.name.as.src' to 'local.net.node.names'.
+      ## Because, in case of CLR3 algo, if a target node (say, v7_t2)
+      ## has v7_t1 as a candidate regulator, then v7-t1 already 
+      ## belongs to 'ngbr.names'.
+      # local.net.node.names <- c(tgt.node.name.as.src, ngbr.names)
+      local.net.node.names <- ngbr.names
       
       ##------------------------------------------------------------
       ## Begin: Local Unrolled DBN struct learning
@@ -1722,9 +1728,16 @@ LearnDbnStructMo1Clr3Ser <- function(input.data.discr.3D, mi.net.adj.matrix.list
       
       local.unrolled.DBN.src.node.names <- c()
       
-      local.unrolled.DBN.src.node.names <- c(ngbr.names, tgt.node.name.as.src)
+      ## Do not add 'tgt.node.name.as.src' to 'local.unrolled.DBN.src.node.names'.
+      ## Because, in case of CLR3 algo, if a target node (say, v7_t2)
+      ## has v7_t1 as a candidate regulator, then v7-t1 already 
+      ## belongs to 'ngbr.names'.
+      # local.unrolled.DBN.src.node.names <- c(ngbr.names, tgt.node.name.as.src)
+      local.unrolled.DBN.src.node.names <- ngbr.names
+      
       local.unrolled.DBN.src.node.names <- sort(local.unrolled.DBN.src.node.names)
-      rm(tgt.node.name.as.src)
+      
+      # rm(tgt.node.name.as.src)
       
       local.unrolled.DBN.tgt.node.name <- tgt.node.name
       

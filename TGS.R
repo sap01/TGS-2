@@ -483,7 +483,7 @@ if (clr.algo == 'CLR') {
   
 } else if (clr.algo == 'CLR3') {
   mi.net.adj.matrix.list <- LearnClr3NetMfi(input.data.discr.3D, num.nodes, node.names, num.timepts, 
-                                       max.fanin, mi.net.adj.matrix.list)
+                                       max.fanin, mi.net.adj.matrix.list, apply.aracne)
   
   ## Since 'mi.net.adj.matrix.list' is very large, save it in a specific file
   ## and remove it. Then load it when necessary. No need to retain it in the
