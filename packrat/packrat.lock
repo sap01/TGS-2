@@ -8,21 +8,22 @@ Source: Bioconductor
 Version: 0.28.0
 Hash: adb2b2b75a0043b9a2098354e9acb5fe
 
-Package: BiocManager
-Source: CRAN
-Version: 1.30.4
-Hash: 355639afbcb951bf238be84a81bb5b20
-
-Package: BiocVersion
-Source: Bioconductor
-Version: 3.8.0
-Hash: 761d981e13b5100ec443b88b99ec5630
-
 Package: EDISON
 Source: CRAN
 Version: 1.1.1
 Hash: ae569e9e461809f9eb1075e6880dcd31
-Requires: corpcor
+Requires: MASS, corpcor
+
+Package: MASS
+Source: CRAN
+Version: 7.3-51.4
+Hash: 35b5e96d2946a20836d838f537bc7ab9
+
+Package: Matrix
+Source: CRAN
+Version: 1.2-17
+Hash: 3ee56b7c430e66a6222cf6d700788888
+Requires: lattice
 
 Package: R6
 Source: CRAN
@@ -50,7 +51,7 @@ Package: RcppEigen
 Source: CRAN
 Version: 0.3.3.5.0
 Hash: 0abe558c252854b26620fe1b5e884ece
-Requires: Rcpp
+Requires: Matrix, Rcpp
 
 Package: Rgraphviz
 Source: Bioconductor
@@ -94,7 +95,7 @@ Package: bnstruct
 Source: CRAN
 Version: 1.0.4
 Hash: a4480dd4700fde82847d94ccb407888d
-Requires: bitops, igraph
+Requires: Matrix, bitops, igraph
 
 Package: callr
 Source: CRAN
@@ -122,6 +123,11 @@ Package: clisymbols
 Source: CRAN
 Version: 1.2.0
 Hash: a76a309884277a4fd8a5d741965fbef5
+
+Package: codetools
+Source: CRAN
+Version: 0.2-16
+Hash: eb51f6f32efbc11c76c48b9c4307f1b5
 
 Package: corpcor
 Source: CRAN
@@ -173,7 +179,7 @@ Package: foreach
 Source: CRAN
 Version: 1.4.4
 Hash: 4df5ab2c8c35382dacab75d414da6748
-Requires: iterators
+Requires: codetools, iterators
 
 Package: fs
 Source: CRAN
@@ -197,7 +203,8 @@ Package: gRbase
 Source: CRAN
 Version: 1.8-3.4
 Hash: 03075510778b3b01a7612fe892eb6d68
-Requires: RBGL, Rcpp, RcppArmadillo, RcppEigen, graph, igraph, magrittr
+Requires: Matrix, RBGL, Rcpp, RcppArmadillo, RcppEigen, graph, igraph,
+    magrittr
 
 Package: ggm
 Source: CRAN
@@ -237,7 +244,7 @@ Package: igraph
 Source: CRAN
 Version: 1.2.4
 Hash: cfd61842ae5c3055c7b56731f6c9cfac
-Requires: magrittr, pkgconfig
+Requires: Matrix, magrittr, pkgconfig
 
 Package: infotheo
 Source: CRAN
@@ -258,6 +265,11 @@ Package: jsonlite
 Source: CRAN
 Version: 1.6
 Hash: 5f969e213e966135393e3e304abf3f49
+
+Package: lattice
+Source: CRAN
+Version: 0.20-38
+Hash: 45211081d39bb6d5a89fd789105901aa
 
 Package: magrittr
 Source: CRAN
