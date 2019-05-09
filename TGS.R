@@ -444,7 +444,7 @@ if ((clr.algo == 'CLR') | (clr.algo == 'CLR2') | (clr.algo == 'CLR2.1') | (clr.a
   mi.net.adj.matrix <- matrix(0, nrow = num.nodes, ncol = num.nodes, 
                               dimnames = c(list(node.names), list(node.names)))
   
-} else if ((clr.algo == 'CLR3') || (clr.algo == 'CLR4')) {
+} else if ((clr.algo == 'CLR3') || (clr.algo == 'CLR4') || (clr.algo == 'CLR5') || (clr.algo == 'CLR6')) {
   
   ## CLR net is not static
   rm(mi.net.adj.matrix)
@@ -461,7 +461,7 @@ if ((clr.algo == 'CLR') | (clr.algo == 'CLR2') | (clr.algo == 'CLR2.1') | (clr.a
 # entropy.matrix <- computEntropy(input.data.discr) #----Verify the name
 
 ## Initialize filename where 'mi.net.adj.matrix.list' is to be saved
-## in case 'clr.algo == CLR3' or 'clr.algo == CLR4'
+## in case 'clr.algo' == 'CLR3' or 'CLR4' or 'CLR5' or 'CLR6'
 mi.net.adj.matrix.list.filename <- NULL
 if ((clr.algo == 'CLR') | (clr.algo == 'CLR2') | (clr.algo == 'CLR2.1')) {
   rm(mi.net.adj.matrix.list.filename)
@@ -481,12 +481,18 @@ if (clr.algo == 'CLR') {
   mi.net.adj.matrix <- LearnClrNetMfiVer2.1(input.data.discr, num.nodes, node.names, num.timepts, 
                        max.fanin, output.dirname, mi.net.adj.matrix)
   
-} else if ((clr.algo == 'CLR3') || (clr.algo == 'CLR4')) {
+} else if ((clr.algo == 'CLR3') || (clr.algo == 'CLR4') || (clr.algo == 'CLR5') || (clr.algo == 'CLR6')) {
   if  (clr.algo == 'CLR3') {
     mi.net.adj.matrix.list <- LearnClr3NetMfi(input.data.discr.3D, num.nodes, node.names, num.timepts, 
                                               max.fanin, mi.net.adj.matrix.list)
   } else if (clr.algo == 'CLR4') {
     mi.net.adj.matrix.list <- LearnClr4NetMfi(input.data.discr.3D, num.nodes, node.names, num.timepts, 
+                                              max.fanin, mi.net.adj.matrix.list)
+  } else if (clr.algo == 'CLR5') {
+    mi.net.adj.matrix.list <- LearnClr5NetMfi(input.data.discr.3D, num.nodes, node.names, num.timepts, 
+                                              max.fanin, mi.net.adj.matrix.list)
+  } else if (clr.algo == 'CLR6') {
+    mi.net.adj.matrix.list <- LearnClr6NetMfi(input.data.discr.3D, num.nodes, node.names, num.timepts, 
                                               max.fanin, mi.net.adj.matrix.list)
   }
   
@@ -587,7 +593,7 @@ if ((clr.algo == 'CLR') | (clr.algo == 'CLR2') | (clr.algo == 'CLR2.1')) {
   
 
   
-} else if ((clr.algo == 'CLR3') || (clr.algo == 'CLR4')) {
+} else if ((clr.algo == 'CLR3') || (clr.algo == 'CLR4') || (clr.algo == 'CLR5') || (clr.algo == 'CLR6')) {
   
   num.time.ivals <- (num.timepts - 1)
   unrolled.DBN.adj.matrix.list <- vector(mode = 'list', length = num.time.ivals)
