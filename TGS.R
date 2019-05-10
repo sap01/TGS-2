@@ -127,6 +127,9 @@ parallel <- input.params$parallel
 ## remains unused.
 max.num.cores <- input.params$max.num.cores
 
+## p-value threshold
+p.thres <- input.params$p.thres
+
 rm(input.params)
 ##------------------------------------------------------------
 ## End: Read User-defined input Params
@@ -444,7 +447,7 @@ if ((clr.algo == 'CLR') | (clr.algo == 'CLR2') | (clr.algo == 'CLR2.1') | (clr.a
   mi.net.adj.matrix <- matrix(0, nrow = num.nodes, ncol = num.nodes, 
                               dimnames = c(list(node.names), list(node.names)))
   
-} else if ((clr.algo == 'CLR3') || (clr.algo == 'CLR4') || (clr.algo == 'CLR5') || (clr.algo == 'CLR6')) {
+} else if (clr.algo %in% c('CLR3', 'CLR4', 'CLR5', 'CLR6', 'CLR7', 'CLR8')) {
   
   ## CLR net is not static
   rm(mi.net.adj.matrix)
@@ -461,7 +464,7 @@ if ((clr.algo == 'CLR') | (clr.algo == 'CLR2') | (clr.algo == 'CLR2.1') | (clr.a
 # entropy.matrix <- computEntropy(input.data.discr) #----Verify the name
 
 ## Initialize filename where 'mi.net.adj.matrix.list' is to be saved
-## in case 'clr.algo' == 'CLR3' or 'CLR4' or 'CLR5' or 'CLR6'
+## in case 'clr.algo' is 'CLR3' or 'CLR4' or 'CLR5' or 'CLR6' or 'CLR7' or 'CLR8'
 mi.net.adj.matrix.list.filename <- NULL
 if ((clr.algo == 'CLR') | (clr.algo == 'CLR2') | (clr.algo == 'CLR2.1')) {
   rm(mi.net.adj.matrix.list.filename)
@@ -481,7 +484,7 @@ if (clr.algo == 'CLR') {
   mi.net.adj.matrix <- LearnClrNetMfiVer2.1(input.data.discr, num.nodes, node.names, num.timepts, 
                        max.fanin, output.dirname, mi.net.adj.matrix)
   
-} else if ((clr.algo == 'CLR3') || (clr.algo == 'CLR4') || (clr.algo == 'CLR5') || (clr.algo == 'CLR6')) {
+} else if (clr.algo %in% c('CLR3', 'CLR4', 'CLR5', 'CLR6', 'CLR7', 'CLR8')) {
   if  (clr.algo == 'CLR3') {
     mi.net.adj.matrix.list <- LearnClr3NetMfi(input.data.discr.3D, num.nodes, node.names, num.timepts, 
                                               max.fanin, mi.net.adj.matrix.list)
@@ -494,6 +497,12 @@ if (clr.algo == 'CLR') {
   } else if (clr.algo == 'CLR6') {
     mi.net.adj.matrix.list <- LearnClr6NetMfi(input.data.discr.3D, num.nodes, node.names, num.timepts, 
                                               max.fanin, mi.net.adj.matrix.list)
+  } else if (clr.algo == 'CLR7') {
+    mi.net.adj.matrix.list <- LearnClr7NetMfi(input.data.discr.3D, num.nodes, node.names, num.timepts, 
+                                              max.fanin, mi.net.adj.matrix.list)
+  } else if (clr.algo == 'CLR8') {
+    mi.net.adj.matrix.list <- LearnClr8NetMfi(input.data.discr.3D, num.nodes, node.names, num.timepts, 
+                                              max.fanin, mi.net.adj.matrix.list, p.thres)
   }
   
   ## Since 'mi.net.adj.matrix.list' is very large, save it in a specific file
@@ -593,7 +602,7 @@ if ((clr.algo == 'CLR') | (clr.algo == 'CLR2') | (clr.algo == 'CLR2.1')) {
   
 
   
-} else if ((clr.algo == 'CLR3') || (clr.algo == 'CLR4') || (clr.algo == 'CLR5') || (clr.algo == 'CLR6')) {
+} else if (clr.algo %in% c('CLR3', 'CLR4', 'CLR5', 'CLR6', 'CLR7', 'CLR8')) {
   
   num.time.ivals <- (num.timepts - 1)
   unrolled.DBN.adj.matrix.list <- vector(mode = 'list', length = num.time.ivals)
@@ -623,82 +632,88 @@ rm(input.data.discr.3D)
 
 ## Learn the rolled DBN adj matrix
 ## source(paste(init.path, 'rollDbn.R', sep = '/'))
-# rolled.DBN.adj.matrix <- rollDbn(num.nodes, node.names, num.timepts, unrolled.DBN.adj.matrix, roll.method, allow.self.loop)
-# rolled.DBN.adj.matrix <- rollDbn(num.nodes, node.names, num.timepts, unrolled.DBN.adj.matrix, 'any', FALSE)
-rolled.DBN.adj.matrix <- rollDbn_v2(num.nodes, node.names, num.timepts, unrolled.DBN.adj.matrix.list, 
-                       'any', allow.self.loop)
-di.net.adj.matrix <- rolled.DBN.adj.matrix
-rm(rolled.DBN.adj.matrix)
-
-# writeLines('\n di.net.adj.matrix = \n')
-# print(di.net.adj.matrix)
-## Change the node names back to the original node names
-rownames(di.net.adj.matrix) <- orig.node.names
-colnames(di.net.adj.matrix) <- orig.node.names
-save(di.net.adj.matrix, file = paste(output.dirname, 'di.net.adj.matrix.RData', sep = '/'))
-
-## Create an '.sif' file equivalent to the directed net adjacency matrix
-## that is readable in Cytoscape.
-adjmxToSif(di.net.adj.matrix, output.dirname)
-# rm(unrolled.DBN.adj.matrix)
-##------------------------------------------------------------
-## End: Learn Network Structures
-##------------------------------------------------------------
-
-##------------------------------------------------------------
-## Begin: Calc performance metrics if true net(s) is known
-##------------------------------------------------------------
-if (true.net.filename != '') {
+if (!is.null(unrolled.DBN.adj.matrix.list)) {
+  ## 'unrolled.DBN.adj.matrix.list' is NULL if any only if
+  ## none of the target nodes have any candidate parents in 
+  ## their corresponding shortlists
   
-  ## Loads R obj 'true.net.adj.matrix'
-  true.net.adj.matrix <- NULL
-  load(true.net.filename)
+  # rolled.DBN.adj.matrix <- rollDbn(num.nodes, node.names, num.timepts, unrolled.DBN.adj.matrix, roll.method, allow.self.loop)
+  # rolled.DBN.adj.matrix <- rollDbn(num.nodes, node.names, num.timepts, unrolled.DBN.adj.matrix, 'any', FALSE)
+  rolled.DBN.adj.matrix <- rollDbn_v2(num.nodes, node.names, num.timepts, unrolled.DBN.adj.matrix.list, 
+                                      'any', allow.self.loop)
+  di.net.adj.matrix <- rolled.DBN.adj.matrix
+  rm(rolled.DBN.adj.matrix)
+
+  # writeLines('\n di.net.adj.matrix = \n')
+  # print(di.net.adj.matrix)
+  ## Change the node names back to the original node names
+  rownames(di.net.adj.matrix) <- orig.node.names
+  colnames(di.net.adj.matrix) <- orig.node.names
+  save(di.net.adj.matrix, file = paste(output.dirname, 'di.net.adj.matrix.RData', sep = '/'))
   
-  ## Begin: Create the format for result
-  Result <- matrix(0, nrow = 1, ncol = 11)
-  colnames(Result) <- list('TP', 'TN', 'FP', 'FN', 'TPR', 'FPR', 'FDR', 'PPV', 'ACC', 'MCC',  'F1')
-  # ## End: Create the format for result
+  ## Create an '.sif' file equivalent to the directed net adjacency matrix
+  ## that is readable in Cytoscape.
+  adjmxToSif(di.net.adj.matrix, output.dirname)
+  # rm(unrolled.DBN.adj.matrix)
+  ##------------------------------------------------------------
+  ## End: Learn Network Structures
+  ##------------------------------------------------------------
   
-  if (is.matrix(true.net.adj.matrix)) {
-    ## True net is time-invariant. Therefore, 
-    ## 'true.net.adj.matrix' is a single matrix.
+  ##------------------------------------------------------------
+  ## Begin: Calc performance metrics if true net(s) is known
+  ##------------------------------------------------------------
+  if (true.net.filename != '') {
     
-    predicted.net.adj.matrix <- di.net.adj.matrix
+    ## Loads R obj 'true.net.adj.matrix'
+    true.net.adj.matrix <- NULL
+    load(true.net.filename)
     
-    ResultVsTrue <- calcPerfDiNet(predicted.net.adj.matrix, true.net.adj.matrix, Result, num.nodes)
-    writeLines('Result TGS vs True = \n')
-    print(ResultVsTrue)
-    rm(ResultVsTrue)
+    ## Begin: Create the format for result
+    Result <- matrix(0, nrow = 1, ncol = 11)
+    colnames(Result) <- list('TP', 'TN', 'FP', 'FN', 'TPR', 'FPR', 'FDR', 'PPV', 'ACC', 'MCC',  'F1')
+    # ## End: Create the format for result
     
-  } else if (is.list(true.net.adj.matrix)) {
-    ## True nets are time-varying. Therefore, 
-    ## 'true.net.adj.matrix' is a list of matrices.
-    
-    for (net.idx in 1:length(unrolled.DBN.adj.matrix.list)) {
+    if (is.matrix(true.net.adj.matrix)) {
+      ## True net is time-invariant. Therefore, 
+      ## 'true.net.adj.matrix' is a single matrix.
       
-      predicted.net.adj.matrix <- unrolled.DBN.adj.matrix.list[[net.idx]]
+      predicted.net.adj.matrix <- di.net.adj.matrix
       
-      ResultVsTrue <- calcPerfDiNet(predicted.net.adj.matrix, true.net.adj.matrix[[net.idx]], Result, num.nodes)
-      Result <- rbind(Result, matrix(ResultVsTrue[1, ], nrow = 1, ncol = ncol(Result)))
-
-      # rm(ResultVsTrue)
+      ResultVsTrue <- calcPerfDiNet(predicted.net.adj.matrix, true.net.adj.matrix, Result, num.nodes)
+      writeLines('Result TGS vs True = \n')
+      print(ResultVsTrue)
+      rm(ResultVsTrue)
+      
+    } else if (is.list(true.net.adj.matrix)) {
+      ## True nets are time-varying. Therefore, 
+      ## 'true.net.adj.matrix' is a list of matrices.
+      
+      for (net.idx in 1:length(unrolled.DBN.adj.matrix.list)) {
+        
+        predicted.net.adj.matrix <- unrolled.DBN.adj.matrix.list[[net.idx]]
+        
+        ResultVsTrue <- calcPerfDiNet(predicted.net.adj.matrix, true.net.adj.matrix[[net.idx]], Result, num.nodes)
+        Result <- rbind(Result, matrix(ResultVsTrue[1, ], nrow = 1, ncol = ncol(Result)))
+  
+        # rm(ResultVsTrue)
+      }
+      rm(net.idx)
+      
+      ## Print mean performance averaged over all time-varying networks
+      ResultVsTrue <- colMeans(Result)
+      ResultVsTrue <- matrix(colMeans(Result), nrow = 1, ncol = ncol(Result))
+      colnames(ResultVsTrue) <- colnames(Result)
+      writeLines('Result TGS vs True = \n')
+      print(ResultVsTrue)
+      rm(ResultVsTrue)
     }
-    rm(net.idx)
     
-    ## Print mean performance averaged over all time-varying networks
-    ResultVsTrue <- colMeans(Result)
-    ResultVsTrue <- matrix(colMeans(Result), nrow = 1, ncol = ncol(Result))
-    colnames(ResultVsTrue) <- colnames(Result)
-    writeLines('Result TGS vs True = \n')
-    print(ResultVsTrue)
-    rm(ResultVsTrue)
+    save(Result, file = paste(output.dirname, 'Result.RData', sep = '/'))
+    rm(Result)
   }
-  
-  save(Result, file = paste(output.dirname, 'Result.RData', sep = '/'))
-  rm(Result)
+  rm(di.net.adj.matrix)
 }
-
-rm(unrolled.DBN.adj.matrix.list, di.net.adj.matrix)
+rm(unrolled.DBN.adj.matrix.list)
 ##------------------------------------------------------------
 ## End: Calc performance metrics if true net(s) is known
 ##------------------------------------------------------------
