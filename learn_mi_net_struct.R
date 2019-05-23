@@ -181,11 +181,11 @@ LearnClrNetFromDiscrData <- function(input.data.discr, num.nodes, node.names)
   
 }
 
-############################################################################################
+#######################################################################################################
 ## Goal: Learn CLR net. For each node, retain top 'max.fanin' number of neighbours w.r.t. edge weight
 ## and remove rest of the edges. Tie is broken in favour of the neighbour having smaller node index.
 ## If there are less than that number of edges for a node, then retain all its neighbours.
-
+##
 LearnClrNetMfi <- function(mut.info.matrix, mi.net.adj.matrix, num.nodes, max.fanin, output.dirname) {
   ##------------------------------------------------------------
   ## Begin: Load the Required Libraries
@@ -230,6 +230,58 @@ LearnClrNetMfi <- function(mut.info.matrix, mi.net.adj.matrix, num.nodes, max.fa
   
   return(mi.net.adj.matrix)
 }
+############################################################################################
+
+#######################################################################################################
+## Goal: Learn CLR1.1 net. For each node, retain top 'max.fanin' number of neighbours w.r.t. edge weight
+## and remove rest of the edges. Tie is broken in favour of the neighbour having smaller node index.
+## If there are less than that number of edges for a node, then retain all its neighbours.
+##
+LearnClr1dot1NetMfi <- function(mut.info.matrix, mi.net.adj.matrix, num.nodes, max.fanin, output.dirname) {
+  ##------------------------------------------------------------
+  ## Begin: Load the Required Libraries
+  ##------------------------------------------------------------
+  library(minet)
+  ##------------------------------------------------------------
+  ## End: Load the Required Libraries
+  ##------------------------------------------------------------
+  
+  mi.net.adj.matrix.wt <- minet::clr(mut.info.matrix) # weighted adj matrix
+  
+  # Replace 'NaN' with zero. 'NaN' is produced when a corr. variable has variance zero.
+  mi.net.adj.matrix.wt[is.nan(mi.net.adj.matrix.wt)] <- 0
+  
+  # writeLines('\n mi.net.adj.matrix.wt = \n')
+  # print(mi.net.adj.matrix.wt)
+  save(mi.net.adj.matrix.wt, file = paste(output.dirname, 'mi.net.adj.matrix.wt.RData', sep = '/'))
+  
+  # For each target node
+  for (col.idx in 1:num.nodes) {
+    # Weights of the edges with the target node
+    edge.wts <- mi.net.adj.matrix.wt[, col.idx]
+    
+    # Count number of neighbours having positive edge weight
+    num.nbrs <- length(edge.wts[edge.wts > 0])
+    
+    if (num.nbrs >= max.fanin) {
+      # Return indices of the top 'max.fanin' number of neighbours w.r.t. edge weight.
+      # Tie is broken in favour of the neighbour having smaller index.
+      valid.nbrs <- sort(edge.wts, decreasing = TRUE, index.return = TRUE)$ix[1:max.fanin]
+      
+      mi.net.adj.matrix[valid.nbrs, col.idx] <- 1
+      
+      ## The following line is not required since 'mi.net.adj.matrix' is initialized
+      ## with all zeroes
+      # mi.net.adj.matrix[-(valid.nbrs), col.idx] <- 0
+    } else if (num.nbrs < max.fanin) {
+      # Retain all the neighbours
+      mi.net.adj.matrix[edge.wts > 0, col.idx] <- 1
+    }
+  }
+  
+  return(mi.net.adj.matrix)
+}
+############################################################################################
 
 ############################################################################################
 ## Goal: Learn CLR2 net. For each node, retain top 'max.fanin' number of neighbours w.r.t. edge weight
