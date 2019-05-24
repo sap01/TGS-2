@@ -1027,9 +1027,10 @@ LearnClr4NetMfi <- function(input.data.discr.3D, num.nodes, node.names, num.time
 ## CLR4 edge weight = (z.parent^2 + z.tgt^2)^0.5 where
 ## z.parent = max(0, (MI(candidate.parent, tgt) - mean(MI(candidate.parent, .)) / sd(MI(candidate.parent, .))) - sd.thres) and
 ## z.tgt = max(0, (MI(candidate.parent, tgt) - mean(MI(., tgt)) / sd(MI(., tgt))) - sd.thres).
+## Here, sd.thres is a user-defined parameter.
 ## If the tgt belongs to time point t_p, then the candidate parent must belong to time point t_(p + 1).
 ## Else if (not both z.parent and z.tgt are greater than zero) then
-## CLR4 edge weight = zero.
+## CLR4.1 edge weight = zero.
 ##
 LearnClr4dot1NetMfi <- function(input.data.discr.3D, num.nodes, node.names, num.timepts, 
                             max.fanin, mi.net.adj.matrix.list, sd.thres)
@@ -1158,6 +1159,247 @@ LearnClr4dot1NetMfi <- function(input.data.discr.3D, num.nodes, node.names, num.
                     candidate.parent.mean.sd[candidate.parent.name, 'clr.mean']) / 
             candidate.parent.mean.sd[candidate.parent.name, 'clr.sd']
           tmp <- (tmp - sd.thres)
+        }
+        z.parent <- max(0, tmp)
+        
+        rm(tmp)
+        
+        clr.edge.wt <- 0
+        if ((z.tgt > 0) && (z.parent > 0)) {
+          clr.edge.wt <- ((z.tgt)^2 + (z.parent)^2)
+          clr.edge.wt <- sqrt(clr.edge.wt)
+        }
+        
+        rm(z.tgt, z.parent)
+        
+        mi.net.adj.matrix.wt[candidate.parent.name, tgt.node.name] <- clr.edge.wt
+      }
+      rm(candidate.parent.name)
+      
+    }
+    rm(tgt.node.name)
+    
+    ##############################################################
+    ## Begin:
+    ## Estimate the unweighted adjacency matrix 'mi.net.adj.matrix'
+    ## using the weighted adjacency matrix 'mi.net.adj.matrix.wt'
+    ## and 'max.fanin'
+    ##############################################################
+    
+    ## Initialize unweighted adjacency matrix of the CLR net
+    ## corr. to the current time interval
+    mi.net.adj.matrix <- matrix(0, nrow = num.nodes, ncol = num.nodes, 
+                                dimnames = c(list(candidate.parent.node.names), 
+                                             list(candidate.tgt.node.names)))
+    
+    ## For each target node
+    for (col.idx in 1:num.nodes) {
+      
+      ## Weights of the edges with the target node
+      edge.wts <- mi.net.adj.matrix.wt[, col.idx]
+      
+      ## Count number of neighbours having positive edge weight
+      num.nbrs <- length(edge.wts[edge.wts > 0])
+      
+      if (num.nbrs >= max.fanin) {
+        
+        ## Return indices of the top 'max.fanin' number of neighbours w.r.t. edge weight.
+        ## Tie is broken in favour of the neighbour having smaller index.
+        valid.nbrs <- sort(edge.wts, decreasing = TRUE, index.return = TRUE)$ix[1:max.fanin]
+        
+        mi.net.adj.matrix[valid.nbrs, col.idx] <- 1
+        
+      } else if (num.nbrs < max.fanin) {
+        
+        # Retain all the neighbours
+        mi.net.adj.matrix[edge.wts > 0, col.idx] <- 1
+      }
+    }
+    rm(col.idx)
+    
+    ##############################################################
+    ## End:
+    ## Estimate the unweighted adjacency matrix 'mi.net.adj.matrix'
+    ## using the weighted adjacency matrix 'mi.net.adj.matrix.wt'
+    ## and 'max.fanin'
+    ##############################################################
+    
+    
+    mi.net.adj.matrix.list[[time.pt.idx]] <- mi.net.adj.matrix
+  }
+  rm(time.pt.idx)
+  
+  return(mi.net.adj.matrix.list)
+}
+
+############################################################################################
+
+############################################################################################
+## Goal: Learn CLR4.2 net. For each node, retain top 'max.fanin' number of neighbours w.r.t. edge weight
+## and remove rest of the edges. Tie is broken in favour of the neighbour having smaller node index.
+## If there are less than that number of edges for a node, then retain all its neighbours.
+## If (z.parent and z.tgt both are greater than zero) then
+## CLR4 edge weight = (z.parent^2 + z.tgt^2)^0.5 where
+## z.parent = max(0, (MI(candidate.parent, tgt) - mean(MI(candidate.parent, .)) / sd(MI(candidate.parent, .))) - tgt.clr.sd.thres);
+## here,  
+## tgt.clr.sd.thres = floor(max deviation / sd)
+## = floor((max(MI(candidate.parent, .)) - mean(MI(candidate.parent, .))) / sd(MI(candidate.parent, .))).
+## Similarly,
+## z.tgt = max(0, (MI(candidate.parent, tgt) - mean(MI(., tgt)) / sd(MI(., tgt))) - candidate.parent.clr.sd.thres);
+## here,
+## candidate.parent.clr.sd.thres = floor(max deviation / sd)
+## = floor((max(MI(., tgt)) - mean(MI(., tgt))) / sd(MI(., tgt))).
+## 
+## If the tgt belongs to time point t_p, then the candidate parent must belong to time point t_(p + 1).
+## Else if (not both z.parent and z.tgt are greater than zero) then
+## CLR4.2 edge weight = zero.
+##
+LearnClr4dot2NetMfi <- function(input.data.discr.3D, num.nodes, node.names, num.timepts, 
+                                max.fanin, mi.net.adj.matrix.list)
+{
+  ##------------------------------------------------------------
+  ## Begin: Load the Required Libraries
+  ##------------------------------------------------------------
+  ##
+  ##------------------------------------------------------------
+  ## End: Load the Required Libraries
+  ##------------------------------------------------------------
+  
+  ## Here, each 'time.pt.idx' represents time interval 
+  ## ('time.pt.idx', ('time.pt.idx' + 1))
+  for (time.pt.idx in 1:(num.timepts - 1)) {
+    
+    ## Discretized data corr. to the current time interval
+    input.data.discr.3D.curr.ival <- input.data.discr.3D[(time.pt.idx:(time.pt.idx + 1)), , ]
+    
+    candidate.parent.node.names <- c()
+    candidate.tgt.node.names <- c()
+    for (curr.node.name in node.names) {
+      parent.full.name <- paste(curr.node.name, as.character(time.pt.idx), sep = '_t')
+      candidate.parent.node.names <- c(candidate.parent.node.names, parent.full.name)
+      rm(parent.full.name)
+      
+      tgt.full.name <- paste(curr.node.name, as.character(time.pt.idx + 1), sep = '_t')
+      candidate.tgt.node.names <- c(candidate.tgt.node.names, tgt.full.name)
+      rm(tgt.full.name)
+    }
+    rm(curr.node.name)
+    
+    ## Initialize mutual information matrix with zeroes
+    mut.info.matrix <- matrix(0, nrow = num.nodes, ncol = num.nodes, 
+                              dimnames = c(list(candidate.parent.node.names), 
+                                           list(candidate.tgt.node.names)))
+    
+    #################################################################################
+    # ## Build mutual information matrix
+    # for (col.idx in 1:(num.nodes - 1)) {
+    #   for (col.idx.2 in (col.idx + 1):num.nodes) {
+    #     
+    #     ## compute_cmi.R
+    #     ## (dim1 == 1) => time.pt.idx
+    #     ## (dim1 == 2) => (time.pt.idx + 1)
+    #     mut.info <- ComputeCmiPcaCmi(input.data.discr.3D.curr.ival[1, col.idx, ], 
+    #                            input.data.discr.3D.curr.ival[2, col.idx.2, ])
+    #     
+    #     mut.info.matrix[col.idx, col.idx.2] <- mut.info
+    #     mut.info.matrix[col.idx.2, col.idx] <- mut.info
+    #   }
+    #   rm(col.idx.2)
+    # }
+    # rm(col.idx)
+    #################################################################################
+    ## Build mutual information matrix
+    for (parent.idx in 1:num.nodes) {
+      for (tgt.idx in 1:num.nodes) {
+        
+        ## compute_cmi.R
+        ## (dim1 == 1) => time.pt.idx
+        ## (dim1 == 2) => (time.pt.idx + 1)
+        mut.info <- ComputeCmiPcaCmi(input.data.discr.3D.curr.ival[1, parent.idx, ], 
+                                     input.data.discr.3D.curr.ival[2, tgt.idx, ])
+        
+        ## Mutual info matrix is asymmetric in this case
+        mut.info.matrix[parent.idx, tgt.idx] <- mut.info
+      }
+      rm(tgt.idx)
+    }
+    rm(parent.idx)
+    #################################################################################
+    
+    ## Initialize unweighted adjacency matrix of the CLR net
+    ## corr. to the current time interval
+    mi.net.adj.matrix.wt <- matrix(0, nrow = num.nodes, ncol = num.nodes, 
+                                   dimnames = c(list(candidate.parent.node.names), 
+                                                list(candidate.tgt.node.names)))
+    
+    candidate.parent.mean.sd <- matrix(0, nrow = num.nodes, ncol = 3)
+    rownames(candidate.parent.mean.sd) <- candidate.parent.node.names
+    colnames(candidate.parent.mean.sd) <- c('clr.mean', 'clr.sd', 'clr.sd.thres')
+    
+    ## Calculate sample mean and sample standard deviation of the given nodes.
+    ## It is calculated acc. to the logic in function 'clr()' in
+    ## R package 'minet' (version 3.36.0).
+    ## The aforementioned 'clr()' function uses 'clr.cpp' to perform
+    ## the calculation. Here, the same logic is re-implemented in R.
+    ## Since the in-built 'mean()' and 'sd()' functions in 
+    ## R version 3.3.2 follows the exact same logic, therefore, the
+    ## re-implementation is straight-forward.
+    for (parent.name in candidate.parent.node.names) {
+      ## arithmetic mean
+      candidate.parent.mean.sd[parent.name, 'clr.mean'] <- mean(mut.info.matrix[parent.name, ])
+      
+      ## var <- 0
+      ## for (each sample) {
+      ##  sd <- (mean - sample val)
+      ##  var <- var + (sd^2)
+      ## }
+      ## var <- var / (n -1) ## where n = number of samples
+      ## sd <- sqrt(var)
+      candidate.parent.mean.sd[parent.name, 'clr.sd'] <- sd(mut.info.matrix[parent.name, ])
+      
+      ## Calc candidate.parent.mean.sd[parent.name, 'clr.sd.thres'] 
+      ########################################################################
+      if (candidate.parent.mean.sd[parent.name, 'clr.sd'] != 0) {
+        tmp <- max((mut.info.matrix[parent.name, ]))
+        tmp <- (tmp - candidate.parent.mean.sd[parent.name, 'clr.mean'])
+        tmp <- (tmp / candidate.parent.mean.sd[parent.name, 'clr.sd'])
+        candidate.parent.mean.sd[parent.name, 'clr.sd.thres'] <- floor(tmp)
+        rm(tmp)
+        
+      } else {
+        candidate.parent.mean.sd[parent.name, 'clr.sd.thres'] <- 0
+      }
+      ########################################################################
+      
+      
+    }
+    rm(parent.name)
+    
+    for (tgt.node.name in candidate.tgt.node.names) {
+      
+      tgt.clr.mean <- mean(mut.info.matrix[, tgt.node.name])
+      tgt.clr.sd <- sd(mut.info.matrix[, tgt.node.name])
+      tgt.clr.max <- max(mut.info.matrix[, tgt.node.name])
+      
+      tgt.clr.sd.thres <- floor((tgt.clr.max - tgt.clr.mean) / tgt.clr.sd)
+      
+      ## Edge weights of the CLR net are calculated acc. to
+      ## 'minet::clr()'
+      for (candidate.parent.name in candidate.parent.node.names) {
+        
+        tmp <- 0
+        if (tgt.clr.sd != 0) {
+          tmp <- (mut.info.matrix[candidate.parent.name, tgt.node.name] - tgt.clr.mean) / tgt.clr.sd
+          tmp <- (tmp - tgt.clr.sd.thres)
+        }
+        z.tgt <- max(0, tmp)
+        
+        tmp <- 0
+        if (candidate.parent.mean.sd[candidate.parent.name, 'clr.sd'] != 0) {
+          tmp <- (mut.info.matrix[candidate.parent.name, tgt.node.name] - 
+                    candidate.parent.mean.sd[candidate.parent.name, 'clr.mean']) / 
+            candidate.parent.mean.sd[candidate.parent.name, 'clr.sd']
+          tmp <- (tmp - candidate.parent.mean.sd[candidate.parent.name, 'clr.sd.thres'])
         }
         z.parent <- max(0, tmp)
         
