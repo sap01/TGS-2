@@ -242,11 +242,67 @@ discretizeData.2L.Tesla <- function(input.data)
 ##########################################################################################################
 
 ##########################################################################################################
-## Goal: Discretize time-series input data into three levels {1, 2, 3} 
+## Goal: Discretize time-series input data into two levels {1, 2} 
 ## using the following strategy. 
 ## The input data may or may not have multiple time series.
 ## For each gene, its expression value(s) at the first time point(s)
 ## are assinged level 1. 
+## Level 1: If it belongs to the first time point or if it is lower than that 
+## of the previous time point in the same time series.
+## Level 2: If it is not lower than that of the previous time point in the same time series.
+##########################################################################################################
+discretizeData.2L.1 <- function(input.data, num.timepts) {
+  
+  ## Num of time series
+  num.ts <- (nrow(input.data) / num.timepts)
+  
+  for (ts.idx in 1:num.ts) {
+    
+    ## Last and first rows of the current time series
+    ## in the 'input.data'
+    last.row <- (num.timepts * ts.idx)
+    first.row <- (last.row - num.timepts + 1)
+    
+    ## Current time series  
+    curr.ts <- input.data[first.row:last.row, ]
+    
+    ## Initialize discretized version of the 
+    ## current time series
+    curr.ts.d <- curr.ts
+    
+    ## Values at the first time point are assigned 
+    ## level 1
+    curr.ts.d[1, ] <- 1
+    
+    for (row.idx in 2:nrow(curr.ts)) {
+      for (col.idx in 1:ncol(curr.ts)) {
+        if (curr.ts[row.idx, col.idx] < curr.ts[(row.idx - 1), col.idx]) {
+          curr.ts.d[row.idx, col.idx] <- 1
+          
+        } else {
+          curr.ts.d[row.idx, col.idx] <- 2
+        }
+      }
+      rm(col.idx)
+    }
+    rm(row.idx)
+    
+    ## Replace continuous data with discretized data
+    input.data[first.row:last.row, ] <- curr.ts.d
+  }
+  rm(ts.idx)
+  
+  ## Return discretized version of the input data
+  return(input.data)
+}
+########################################################################################################## 
+
+##########################################################################################################
+## Goal: Discretize time-series input data into three levels {1, 2, 3} 
+## using the following strategy. 
+## The input data may or may not have multiple time series.
+## For each gene, its expression value(s) at the first time point(s)
+## are assinged level 2. 
 ## Level 2: If it belongs to the first time point or if it is same as that 
 ## of the previous time point in the same time series.
 ## Level 3: If it is higher than that of the previous time point in the same time series.
@@ -296,6 +352,121 @@ discretizeData.3L.1 <- function(input.data, num.timepts) {
     input.data[first.row:last.row, ] <- curr.ts.d
   }
   rm(ts.idx)
+  
+  ## Return discretized version of the input data
+  return(input.data)
+}
+########################################################################################################## 
+
+##########################################################################################################
+## Goal: Discretize time-series input data into three levels {1, 2, 3} 
+## using the following strategy. 
+## The input data may or may not have multiple time series.
+## For each gene, its expression value(s) at the first time point(s)
+## are assinged level 2. 
+## Level 2: If it belongs to the first time point or if it is equal to 
+## (e - e * d) where e = expression at the prev time pt in the same time series and 
+## d = rate of mRNA decay corr. to the concerned gene.
+## Level 3: If it is higher than (e - e * d).
+## Level 1: If it is lower than (e - e * d).
+##########################################################################################################
+discretizeData.3L.2 <- function(input.data, num.timepts) {
+  
+  ## Num of time series
+  num.ts <- (nrow(input.data) / num.timepts)
+  
+  
+  num.genes <- ncol(input.data)
+  
+  for (gene.idx in 1:num.genes) {
+    
+    ## Determine the rate of mRNA decay for every gene
+    ###########################################################
+    ## Initialize the minimum mRNA decay rate of the given gene
+    min.mrna.decay.rate <- 0
+    
+    for (ts.idx in 1:num.ts) {
+      
+      ## Last and first rows of the current time series
+      ## in the 'input.data'
+      last.row <- (num.timepts * ts.idx)
+      first.row <- (last.row - num.timepts + 1)
+      
+      ## Current time series  for the given gene.
+      ## It sd be a vector.
+      curr.ts <- input.data[first.row:last.row, gene.idx]
+      rm(first.row, last.row)
+      
+      for (curr.time.pt in 2:num.timepts) {
+        
+        curr.mrna.decay.rate <- 0
+        
+        if (curr.ts[curr.time.pt] < curr.ts[(curr.time.pt - 1)]) {
+          curr.mrna.decay.rate <- ((curr.ts[(curr.time.pt - 1)] - curr.ts[curr.time.pt]) / curr.ts[(curr.time.pt - 1)])
+        }
+        
+        if (curr.mrna.decay.rate < min.mrna.decay.rate) {
+          min.mrna.decay.rate <- curr.mrna.decay.rate
+        }
+      }
+      rm(curr.time.pt)
+      
+    }
+    rm(ts.idx)
+    ###########################################################
+    
+    ## Discretize data for the given gene
+    ###########################################################
+    for (ts.idx in 1:num.ts) {
+      
+      ## Last and first rows of the current time series
+      ## in the 'input.data'
+      last.row <- (num.timepts * ts.idx)
+      first.row <- (last.row - num.timepts + 1)
+      
+      ## Current time series  
+      curr.ts <- input.data[first.row:last.row, gene.idx]
+      rm(first.row, last.row)
+      
+      ## Initialize discretized version of the 
+      ## current time series for the given gene
+      curr.ts.d <- curr.ts
+      
+      ## Value at the first time point are assigned 
+      ## level 2 for the given gene
+      curr.ts.d[1] <- 2
+      
+      for (curr.time.pt in 2:num.timepts) {
+        
+        ## Expected expression of the given gene in the current time pt
+        ## assuming no up- or down-regulation has happened
+        expr.no.reg <- (curr.ts[(curr.time.pt - 1)] * min.mrna.decay.rate)
+        expr.no.reg <- (curr.ts[(curr.time.pt - 1)] - expr.no.reg)
+        
+        if (curr.ts[curr.time.pt] < expr.no.reg) {
+          ## Down-regulated
+          curr.ts.d[curr.time.pt] <- 1
+        } else if (curr.ts[curr.time.pt] == expr.no.reg) {
+          ## Neither down-regulated nor up-regulated
+          curr.ts.d[curr.time.pt] <- 2
+        } else if (curr.ts[curr.time.pt] > expr.no.reg) {
+          ## ## Up-regulated
+          curr.ts.d[curr.time.pt] <- 3
+        }
+      }
+      rm(time.pt)
+      
+      ## Replace continuous data with discretized data for the given gene
+      input.data[first.row:last.row, gene.idx] <- curr.ts.d
+      
+    }
+    rm(ts.idx)
+    ###########################################################
+    
+  }
+  rm(gene.idx)
+  
+  rm(num.genes)
   
   ## Return discretized version of the input data
   return(input.data)

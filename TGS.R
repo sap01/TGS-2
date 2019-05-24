@@ -316,12 +316,19 @@ if (is.discrete) {
     stop('Please specify the value of discr.algo.')
     
   } else if (discr.algo == 'discretizeData.2L.wt.l') {
+    ## 'discretizeData.R'
     input.data.discr <- discretizeData.2L.wt.l(input.data, input.wt.data.filename)
     
   } else if (discr.algo == 'discretizeData.2L.Tesla') {
+    ## 'discretizeData.R'
     input.data.discr <- discretizeData.2L.Tesla(input.data)
     
+  } else if (discr.algo == 'discretizeData.2L.1') {
+    ## 'discretizeData.R'
+    input.data.discr <- discretizeData.2L.1(input.data, num.timepts)
+        
   } else if (discr.algo == 'discretizeData.3L.1') {
+    ## 'discretizeData.R'
     input.data.discr <- discretizeData.3L.1(input.data, num.timepts)
     
   }
