@@ -2153,6 +2153,7 @@ LearnClr8NetMfi <- function(input.data.discr.3D, num.nodes, node.names, num.time
           z.score <- ((tgt.clr.mean - mut.info.matrix[candidate.parent.name, tgt.node.name]) / 
             (tgt.clr.sd / sqrt(num.samples.per.timept)))
           p.val <- 2 * pnorm(-abs(z.score))
+          p.val <- (1 - p.val)
         }
         rm(z.score)
         
@@ -2168,6 +2169,7 @@ LearnClr8NetMfi <- function(input.data.discr.3D, num.nodes, node.names, num.time
                          mut.info.matrix[candidate.parent.name, tgt.node.name]) / 
             (candidate.parent.mean.sd[candidate.parent.name, 'clr.sd'] / sqrt(num.samples.per.timept)))
           p.val <- 2 * pnorm(-abs(z.score))
+          p.val <- (1 - p.val)
         }
         rm(z.score)
         

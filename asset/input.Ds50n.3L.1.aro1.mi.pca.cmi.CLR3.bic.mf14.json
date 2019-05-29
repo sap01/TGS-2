@@ -1,0 +1,19 @@
+{ 
+   "input.data.filename": "InSilicoSize50-Yeast1-trajectories.tsv",
+   "num.timepts": 21,
+   "true.net.filename": "DREAM3GoldStandard_InSilicoSize50_Yeast1_TrueNet.RData",
+   "input.wt.data.filename": "InSilicoSize50-Yeast1-null-mutants.tsv",
+   "is.discrete": false,
+   "num.discr.levels": 3,
+   "discr.algo": "discretizeData.3L.1",
+   "auto.reg.order": 1,
+   "mi.estimator": "mi.pca.cmi",
+   "apply.aracne": false,
+   "clr.algo": "CLR3",
+   "max.fanin": 14,
+   "allow.self.loop": false,
+   "use.lite": false,
+   "scoring.func": "BIC",
+   "parallel": false,
+   "max.num.cores": 1
+}
