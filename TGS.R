@@ -214,9 +214,9 @@ source(paste(init.path, 'learn_local_dbn.R', sep = '/'))
 source(paste(init.path, 'score_bn.R', sep = '/'))
 
 if (.Platform$OS.type == 'windows') {
-  dyn.load(paste(init.path, 'src/Windows/score_bn.dll', sep = '/'))
+  dyn.load(paste(init.path, 'src/windows/score_bn.dll', sep = '/'))
 } else if (.Platform$OS.type == 'unix') {
-  dyn.load(paste(init.path, 'src/Unix-alikes/score_bn.so', sep = '/'))
+  dyn.load(paste(init.path, 'src/unix/score_bn.so', sep = '/'))
 }
 
 source(paste(init.path, 'calcPerfDiNet.R', sep = '/'))
@@ -489,7 +489,8 @@ if (clr.algo %in% c('CLR', 'CLR1.2')) {
   if  (clr.algo == 'CLR') {
     mi.net.adj.matrix <- LearnClrNetMfi(mut.info.matrix, mi.net.adj.matrix, num.nodes, max.fanin, output.dirname)
   } else if  (clr.algo == 'CLR1.2') {
-    mi.net.adj.matrix <- LearnClr1dot2NetMfi(mut.info.matrix, mi.net.adj.matrix, num.nodes, max.fanin, output.dirname)
+    mi.net.adj.matrix <- LearnClr1dot2NetMfi(mut.info.matrix, mi.net.adj.matrix, 
+                                             num.nodes, max.fanin, output.dirname, init.path)
   }
 } else if (clr.algo == 'CLR2') {
   mi.net.adj.matrix <- LearnClr2NetMfi(input.data.discr, num.nodes, node.names, num.timepts, 

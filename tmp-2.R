@@ -1,97 +1,30 @@
 #######################################################################################################
-## Goal: Learn CLR1.2 net. This is exactly same as CLR net.
-## Therefore, this function is equivalent to function LearnClrNetMfi().
-## The only difference is that in LearnClrNetMfi(), 
-## the weighted CLR net adjacency matrix is estimated using the minet
-## package's clr() function, whereas in this function, the estimation
-## is implemented without depending on any external package.
+## Goal: Learn CLR1.3 net.
+## TODO(sap)
 ##
-LearnClr1dot2NetMfi <- function(mut.info.matrix, mi.net.adj.matrix, num.nodes, max.fanin, output.dirname) {
+LearnClr1dot3NetMfi <- function(mut.info.matrix, mi.net.adj.matrix, num.nodes, max.fanin, 
+                                output.dirname, init.path) {
   ##------------------------------------------------------------
   ## Begin: Load the Required Libraries
   ##------------------------------------------------------------
-  ## none
+  # none
   ##------------------------------------------------------------
   ## End: Load the Required Libraries
   ##------------------------------------------------------------
   
-  ##------------------------------------------------------------
-  ## Begin: Estimate weighted CLR net adjacency matrix
-  ##------------------------------------------------------------
-
+  ## Load external functions
+  source(paste(init.path, 'learn_clr.R', sep = '/'))
   
-  ## Initialize weighted CLR net adjacency matrix
-  # node.names <- rownames(mut.info.matrix)
-  # mi.net.adj.matrix.wt <- matrix(0, nrow = num.nodes, ncol = num.nodes, 
-  #                                dimnames = c(list(node.names), 
-  #                                             list(node.names)))
-  mi.net.adj.matrix.wt <- matrix(0, nrow = num.nodes, ncol = num.nodes)
-  
-  node.mean.sd <- matrix(0, nrow = num.nodes, ncol = 2)
-  # rownames(node.mean.sd) <- node.names
-  colnames(node.mean.sd) <- c('clr.mean', 'clr.sd')
-  
-  ## Calculate sample mean and sample standard deviation of each node.
-  ## It is calculated acc. to the logic in function 'clr()' in
-  ## R package 'minet' (version 3.6.0).
-  ## The aforementioned 'clr()' function uses 'clr.cpp' to perform
-  ## the calculation. Here, the same logic is re-implemented in R.
-  ## Since the in-built 'mean()' and 'sd()' functions in 
-  ## R version 3.3.2 follows the exact same logic, therefore, the
-  ## re-implementation is straight-forward.
-  for (curr.node.idx in 1:num.nodes) {
-    ## arithmetic mean
-    node.mean.sd[curr.node.idx, 'clr.mean'] <- mean(mut.info.matrix[curr.node.idx, ])
-    
-    ## var <- 0
-    ## for (each sample) {
-    ##  sd <- (mean - sample val)
-    ##  var <- var + (sd^2)
-    ## }
-    ## var <- var / (n -1) ## where n = number of samples
-    ## sd <- sqrt(var)
-    node.mean.sd[curr.node.idx, 'clr.sd'] <- sd(mut.info.matrix[curr.node.idx, ])
+  # dyn.load(paste(init.path, 'src/clr.so', sep = '/'))
+  if (.Platform$OS.type == 'windows') {
+    ## TODO(sap)
+    # dyn.load(paste(init.path, 'src/windows/clr.dll', sep = '/'))
+  } else if (.Platform$OS.type == 'unix') {
+    dyn.load(paste(init.path, 'src/unix/clr.so', sep = '/'))
   }
-  rm(curr.node.idx)
   
-  ## Edge weights of the CLR net are calculated acc. to
-  ## 'minet::clr()'
-  for (tgt.node.idx in 2:num.nodes) {
-    for (candidate.parent.idx in 1:(tgt.node.idx - 1)) {
-      
-      tmp <- 0
-      if (node.mean.sd[tgt.node.idx, 'clr.sd'] != 0) {
-        tmp <- ((mut.info.matrix[candidate.parent.idx, tgt.node.idx] - 
-                  node.mean.sd[tgt.node.idx, 'clr.mean']) / 
-          node.mean.sd[tgt.node.idx, 'clr.sd'])
-      }
-      z.tgt <- max(0, tmp)
-      
-      tmp <- 0
-      if (node.mean.sd[candidate.parent.idx, 'clr.sd'] != 0) {
-        tmp <- ((mut.info.matrix[candidate.parent.idx, tgt.node.idx] - 
-                  node.mean.sd[candidate.parent.idx, 'clr.mean']) / 
-          node.parent.mean.sd[candidate.parent.idx, 'clr.sd'])
-      }
-      z.parent <- max(0, tmp)
-      
-      rm(tmp)
-      
-      clr.edge.wt <- ((z.tgt)^2 + (z.parent)^2)
-      clr.edge.wt <- sqrt(clr.edge.wt)
-      rm(z.tgt, z.parent)
-      
-      ## Weighted CLR net adjacency matrix is a symmetric matrix
-      mi.net.adj.matrix.wt[candidate.parent.idx, tgt.node.idx] <- clr.edge.wt
-      mi.net.adj.matrix.wt[tgt.node.idx, candidate.parent.idx] <- clr.edge.wt
-    }
-    rm(candidate.parent.idx)
-    
-  }
-  rm(tgt.node.idx)
-  ##------------------------------------------------------------
-  ## End: Estimate weighted CLR net adjacency matrix
-  ##------------------------------------------------------------
+  ## source(paste(init.path, 'learn_clr.R', sep = '/'))
+  mi.net.adj.matrix.wt <- LearnClr(mut.info.matrix, 'CLR1.3') # weighted adj matrix
   
   # Replace 'NaN' with zero. 'NaN' is produced when a corr. variable has variance zero.
   mi.net.adj.matrix.wt[is.nan(mi.net.adj.matrix.wt)] <- 0

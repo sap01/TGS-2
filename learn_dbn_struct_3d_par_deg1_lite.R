@@ -44,9 +44,15 @@ LearnDbnStructMo1Layer3dSerDeg1_v2_Lite <- function(input.data.discr.3D,
     foreach::foreach(time.trans.idx = 1:num.time.trans, .packages = c('foreach', 'bnstruct'), .verbose = TRUE) %:%
     when(sum(mi.net.adj.matrix[, tgt.node.idx]) > 0) %do% {
       
-      source(paste(init.path, 'learn_local_dbn.R', sep = '/'))
-      source(paste(init.path, 'score_bn.R', sep = '/'))
-      dyn.load(paste(init.path, 'src/score_bn.so', sep = '/'))
+      ## Already done in TGS.R
+      # source(paste(init.path, 'learn_local_dbn.R', sep = '/'))
+      # source(paste(init.path, 'score_bn.R', sep = '/'))
+      # 
+      # if (.Platform$OS.type == 'windows') {
+      #   dyn.load(paste(init.path, 'src/windows/score_bn.dll', sep = '/'))
+      # } else if (.Platform$OS.type == 'unix') {
+      #   dyn.load(paste(init.path, 'src/unix/score_bn.so', sep = '/'))
+      # }
       
       tgt.node.name <- rownames(mi.net.adj.matrix)[tgt.node.idx]
       
@@ -331,9 +337,15 @@ LearnDbnStructMo1Layer3dParDeg1_v2_Lite <- function(input.data.discr.3D,
     foreach::foreach(time.trans.idx = 1:num.time.trans, .packages = c('foreach', 'bnstruct'), .verbose = TRUE) %:%
     when(sum(mi.net.adj.matrix[, tgt.node.idx]) > 0) %dopar% {
       
-      source(paste(init.path, 'learn_local_dbn.R', sep = '/'))
-      source(paste(init.path, 'score_bn.R', sep = '/'))
-      dyn.load(paste(init.path, 'src/score_bn.so', sep = '/'))
+      ## Already done in TGS.R
+      # source(paste(init.path, 'learn_local_dbn.R', sep = '/'))
+      # source(paste(init.path, 'score_bn.R', sep = '/'))
+      # 
+      # if (.Platform$OS.type == 'windows') {
+      #   dyn.load(paste(init.path, 'src/windows/score_bn.dll', sep = '/'))
+      # } else if (.Platform$OS.type == 'unix') {
+      #   dyn.load(paste(init.path, 'src/unix/score_bn.so', sep = '/'))
+      # }
       
       tgt.node.name <- rownames(mi.net.adj.matrix)[tgt.node.idx]
       
@@ -357,7 +369,7 @@ LearnDbnStructMo1Layer3dParDeg1_v2_Lite <- function(input.data.discr.3D,
       local.net.node.names <- c()
       if (clr.algo == 'CLR2.1') {
         local.net.node.names <- nbr.names
-      } else if ((clr.algo == 'CLR') | (clr.algo == 'CLR2')) {
+      } else if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2')) {
         local.net.node.names <- c(tgt.node.name, nbr.names)
       }
       
