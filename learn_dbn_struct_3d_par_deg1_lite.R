@@ -76,7 +76,7 @@ LearnDbnStructMo1Layer3dSerDeg1_v2_Lite <- function(input.data.discr.3D,
       local.net.node.names <- c()
       if (clr.algo == 'CLR2.1') {
         local.net.node.names <- nbr.names
-      } else if ((clr.algo == 'CLR') | (clr.algo == 'CLR2')) {
+      } else if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR10')) {
         local.net.node.names <- c(tgt.node.name, nbr.names)
       }
       
@@ -369,7 +369,7 @@ LearnDbnStructMo1Layer3dParDeg1_v2_Lite <- function(input.data.discr.3D,
       local.net.node.names <- c()
       if (clr.algo == 'CLR2.1') {
         local.net.node.names <- nbr.names
-      } else if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2')) {
+      } else if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR10')) {
         local.net.node.names <- c(tgt.node.name, nbr.names)
       }
       

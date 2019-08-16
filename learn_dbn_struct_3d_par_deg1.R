@@ -1347,7 +1347,7 @@ LearnDbnStructMo1Layer3dParDeg1_v2 <- function(input.data.discr.3D,
       local.net.node.names <- c()
       if (clr.algo == 'CLR2.1') {
         local.net.node.names <- nbghNames
-      } else if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2')) {
+      } else if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR10')) {
         local.net.node.names <- c(centralNodeName, nbghNames)
       }
       

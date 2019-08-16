@@ -133,6 +133,8 @@ p.thres <- input.params$p.thres
 ## Std deviation threshold
 sd.thres <- input.params$sd.thres
 
+grade.range <- input.params$grade.range
+
 rm(input.params)
 ##------------------------------------------------------------
 ## End: Read User-defined input Params
@@ -383,7 +385,7 @@ mi.net.adj.matrix <- NULL
 mi.net.adj.matrix.list <- NULL
 
 mut.info.matrix <- NULL
-if (clr.algo %in% c('CLR', 'CLR1.2')) {
+if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR10')) {
   
   # Initialize mutual information matrix with zeroes
   mut.info.matrix <- matrix(0, nrow = num.nodes, ncol = num.nodes, 
@@ -449,7 +451,7 @@ if (clr.algo %in% c('CLR', 'CLR1.2')) {
   rm(mut.info.matrix)
 } 
 
-if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR2.1', 'spearman')) {
+if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR2.1', 'spearman', 'CLR10')) {
   
   ## CLR net is not time-varying
   rm(mi.net.adj.matrix.list)
@@ -477,12 +479,12 @@ if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR2.1', 'spearman')) {
 ## in case 'clr.algo' is 'CLR3' or 'CLR4' or 'CLR4.1' or 'CLR4.2' or 'CLR5' or 'CLR6' or 'CLR7' or 'CLR8'
 ## or 'CLR9'
 mi.net.adj.matrix.list.filename <- NULL
-if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR2.1')) {
+if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR2.1', 'CLR10')) {
   rm(mi.net.adj.matrix.list.filename)
 }
 
 ## source('learn_mi_net_struct.R')
-if (clr.algo %in% c('CLR', 'CLR1.2')) {
+if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR10')) {
   # mi.net.adj.matrix <- LearnMiNetStructZstat(mut.info.matrix, mi.net.adj.matrix, entropy.matrix, alpha)
   # mi.net.adj.matrix <- LearnMiNetStructClr(mut.info.matrix, mi.net.adj.matrix, num.nodes)
   
@@ -491,6 +493,10 @@ if (clr.algo %in% c('CLR', 'CLR1.2')) {
   } else if  (clr.algo == 'CLR1.2') {
     mi.net.adj.matrix <- LearnClr1dot2NetMfi(mut.info.matrix, mi.net.adj.matrix, 
                                              num.nodes, max.fanin, output.dirname, init.path)
+  } else if (clr.algo == 'CLR10') {
+    mi.net.adj.matrix <- LearnClr10NetMfi(mut.info.matrix, mi.net.adj.matrix, 
+                                          num.nodes, max.fanin, grade.range, 
+                                          output.dirname)
   }
 } else if (clr.algo == 'CLR2') {
   mi.net.adj.matrix <- LearnClr2NetMfi(input.data.discr, num.nodes, node.names, num.timepts, 
@@ -543,11 +549,11 @@ writeLines('elapsed.time just after the CLR step= \n')
 print(elapsed.time)
 rm(elapsed.time)
 
-if (clr.algo %in% c('CLR', 'CLR1.2')) {
+if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR10')) {
   rm(mut.info.matrix)
 }
 
-if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR2.1')) {
+if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR2.1', 'CLR10')) {
   # writeLines('\n mi.net.adj.matrix = \n')
   # print(mi.net.adj.matrix)
   save(mi.net.adj.matrix, file = paste(output.dirname, 'mi.net.adj.matrix.RData', sep = '/'))
@@ -572,7 +578,7 @@ if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR2.1')) {
 ##------------------------------------------------------------
 unrolled.DBN.adj.matrix.list <- NULL
 
-if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR2.1')) {
+if (clr.algo %in% c('CLR', 'CLR1.2', 'CLR2', 'CLR2.1', 'CLR10')) {
   
   if (use.lite) {
     if (parallel) {
